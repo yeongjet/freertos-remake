@@ -1,0 +1,48 @@
+
+static void prvInitialiseNewTask(TaskFunction_t pxTaskCode,(1)
+                                 const char * const pcName,(2)
+                                 const uint32_t ulStackDepth,(3)
+                                 void * const pvParameters,(4)
+                                 TaskHandle_t * const pxCreatedTask,(5)
+                                 TCB_t *pxNewTCB )(6)
+
+{
+    StackType_t *pxTopOfStack;
+     UBaseType_t x;
+
+     /* 获取栈顶地址 */(7)
+     pxTopOfStack = pxNewTCB->pxStack + ( ulStackDepth - ( uint32_t ) 1 );
+     /* 向下做8字节对齐 */(8)
+     pxTopOfStack = ( StackType_t * ) 16                      ( ( ( uint32_t ) pxTopOfStack ) & ( ~( ( uint32_t ) 0x0007 ) ) );
+
+     /* 将任务名存储在TCB中 */(9)
+     for ( x = ( UBaseType_t ) 0; x < ( UBaseType_t ) configMAX_TASK_NAME_LEN; x++ )
+     {
+         pxNewTCB->pcTaskName[ x ] = pcName[ x ];
+
+         if ( pcName[ x ] == 0x00 )
+         {
+             break;
+         }
+     }
+     /* 任务名的长度不能超过configMAX_TASK_NAME_LEN */(10)
+     pxNewTCB->pcTaskName[ configMAX_TASK_NAME_LEN - 1 ] = '';
+
+     /* 初始化TCB中的xStateListItem节点 */(11)
+     vListInitialiseItem( &( pxNewTCB->xStateListItem ) );
+     /* 设置xStateListItem节点的拥有者 */(12)
+     listSET_LIST_ITEM_OWNER( &( pxNewTCB->xStateListItem ), pxNewTCB );
+
+
+     /* 初始化任务栈 */(13)
+     pxNewTCB->pxTopOfStack = pxPortInitialiseStack( pxTopOfStack,
+                              pxTaskCode,
+                              pvParameters );
+
+
+     /* 让任务句柄指向任务控制块 */(14)
+     if ( ( void * ) pxCreatedTask != NULL )
+     {
+         *pxCreatedTask = ( TaskHandle_t ) pxNewTCB;
+     }
+ }
